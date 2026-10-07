@@ -33,25 +33,8 @@ src\ClassDailyLand.App\bin\Release\net10.0-windows10.0.17763.0\win-x64\publish\C
 
 ### 界面实拍
 
-| 主窗口（贴右侧） | 灵动岛 | 设置中心（Windows 11 设置风格） |
-|---|---|---|
-| ![主窗口](docs/screenshots/main-window.png) | ![灵动岛](docs/screenshots/island.png) | ![设置中心](docs/screenshots/settings.png) |
-
-| 灵动岛下拉面板 | 副岛 | 状态测试 |
-|---|---|---|
-| ![面板](docs/screenshots/island-panel.png) | ![副岛](docs/screenshots/sub-island.png) | ![状态测试](docs/screenshots/status-test.png) |
-
-| 插件市场 | 课表与提醒 |
-|---|---|
-| ![插件](docs/screenshots/settings-plugins.png) | ![课表与提醒](docs/screenshots/settings-schedule-hub.png) |
-
-| 课表编辑器 | 高级 | 关于 |
-|---|---|---|
-| ![课表编辑器](docs/screenshots/course-editor.png) | ![高级](docs/screenshots/settings-advanced.png) | ![关于](docs/screenshots/settings-about.png) |
-
-| 作业（内嵌编辑器） | 状态测试 |
-|---|---|
-| ![作业](docs/screenshots/settings-homework.png) | ![状态测试](docs/screenshots/status-test.png) |
+截图存放在 [`docs/screenshots/`](docs/screenshots/) 目录（主窗口、灵动岛、下拉面板、副岛、
+设置中心各页、课表编辑器、状态测试等），需要时直接查看，不在本文件内嵌图片。
 
 > 主窗口无标题栏，双击标题栏无法移动 —— 这是与源项目一致的刻意设计。
 > 若要调整位置/宽度，请到「设置 → 通用」。
