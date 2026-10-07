@@ -1,0 +1,22 @@
+<Window x:Class="ClassDailyLand.App.Views.IslandWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ClassDailyLand.App.Views.Controls"
+        Title="灵动岛"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        ShowActivated="False"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
+
+    <!--
+      整条胶囊完全由 IslandVisual 自绘（对应源项目 DynamicIsland.paintEvent），
+      因此这里不放任何 WPF 控件——否则会与自绘内容叠加。
+    -->
+    <controls:IslandVisual x:Name="Visual" />
+</Window>

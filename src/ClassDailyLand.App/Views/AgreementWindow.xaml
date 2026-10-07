@@ -1,0 +1,47 @@
+<Window x:Class="ClassDailyLand.App.Views.AgreementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="用户协议"
+        Width="540"
+        Height="440"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        Background="{DynamicResource ApplicationBackgroundBrush}">
+
+    <Grid Margin="20,18,20,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                CornerRadius="8"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                Padding="14">
+            <TextBox x:Name="AgreementText"
+                     IsReadOnly="True"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     VerticalScrollBarVisibility="Auto"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     FontSize="13" />
+        </Border>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+            <Button Content="不同意，退出"
+                    MinWidth="116"
+                    Padding="12,6"
+                    Click="OnDecline" />
+            <Button Content="同意，开始使用"
+                    MinWidth="116"
+                    Padding="12,6"
+                    Margin="10,0,0,0"
+                    Click="OnAgree" />
+        </StackPanel>
+    </Grid>
+</Window>

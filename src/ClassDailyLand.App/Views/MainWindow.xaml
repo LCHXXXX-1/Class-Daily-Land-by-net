@@ -1,0 +1,67 @@
+<Window x:Class="ClassDailyLand.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="班级日常"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual"
+        FontFamily="Microsoft YaHei UI"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
+
+    <!--
+      与源项目 gui.py 的 ClassBoardApp 对齐：
+      无边框 + 不占任务栏（Qt.FramelessWindowHint | Qt.Tool），
+      贴屏幕右边缘、顶部对齐，宽度 = 屏幕宽 × main_width_ratio，高度随内容自适应。
+    -->
+    <!--
+      右键菜单项与分隔线逐项对齐源项目 gui.py 的 _show_menu。
+      值日生名单编辑放在设置中心里（源项目同样如此），不在本菜单出现。
+    -->
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="上一位值日生" Click="OnPreviousDuty" />
+            <MenuItem Header="下一位值日生" Click="OnNextDuty" />
+            <Separator />
+            <MenuItem Header="出勤人数" Click="OnEditAttendance" />
+            <Separator />
+            <MenuItem Header="编辑作业" Click="OnEditHomework" />
+            <Separator />
+            <MenuItem Header="课表管理" Click="OnManageTimetables" />
+            <MenuItem Header="临时调课" Click="OnTempAdjust" />
+            <Separator />
+            <MenuItem Header="假期与调休" Click="OnHolidays" />
+            <MenuItem Header="周末作息" Click="OnWeekend" />
+            <Separator />
+            <MenuItem Header="设置" Click="OnOpenSettings" />
+            <Separator />
+            <MenuItem Header="随机点名" Click="OnRollCall" />
+            <Separator />
+            <MenuItem Header="退出" Click="OnExit" />
+        </ContextMenu>
+    </Window.ContextMenu>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 头部：标题 + 值日生 + 出勤（不参与滚动，对应源项目 header 区） -->
+        <StackPanel Grid.Row="0" x:Name="HeaderPanel" Margin="12,8,12,0">
+            <TextBlock x:Name="TitleText" Text="班级日常" TextWrapping="Wrap" />
+            <TextBlock x:Name="DutyText" TextWrapping="Wrap" />
+            <TextBlock x:Name="AttendanceText" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- 作业区：内容由代码动态生成，超出高度时自动滚动 -->
+        <ScrollViewer Grid.Row="1"
+                      x:Name="HomeworkScroll"
+                      VerticalScrollBarVisibility="Hidden"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Margin="12,4,12,8">
+            <StackPanel x:Name="HomeworkPanel" />
+        </ScrollViewer>
+    </Grid>
+</Window>

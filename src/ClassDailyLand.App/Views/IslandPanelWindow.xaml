@@ -1,0 +1,30 @@
+<Window x:Class="ClassDailyLand.App.Views.IslandPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="灵动岛面板"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Focusable="False"
+        ResizeMode="NoResize"
+        SizeToContent="Manual"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
+
+    <!-- 深色自绘面板，对应源项目 panel_window.py 的 PanelWindow 绘制。 -->
+    <Border x:Name="Root"
+            CornerRadius="8"
+            Background="#F21C1C1E"
+            ClipToBounds="True">
+        <TextBlock x:Name="ContentText"
+                   Foreground="#E6E6E6"
+                   FontSize="13"
+                   FontFamily="Microsoft YaHei UI"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Top"
+                   Margin="12" />
+    </Border>
+</Window>

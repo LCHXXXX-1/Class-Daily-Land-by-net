@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      插件契约需要暴露「自绘」扩展点（灵动岛加长片段 / 副岛内容），
+      因此这里直接以 WPF 的 DrawingContext 作为绘制抽象。
+      权衡：抽象层与 WPF 耦合，换来插件作者零适配成本 —— 与源项目
+      让插件直接用 Qt QPainter 绘制的做法一致。
+    -->
+    <TargetFramework>$(WindowsTargetFramework)</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ClassDailyLand.Plugin.Abstractions</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 插件只依赖本程序集 + 领域模型，不依赖宿主内部实现 -->
+    <ProjectReference Include="..\ClassDailyLand.Core\ClassDailyLand.Core.csproj" />
+  </ItemGroup>
+
+</Project>

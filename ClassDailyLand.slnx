@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ClassDailyLand.App/ClassDailyLand.App.csproj" />
+    <Project Path="src/ClassDailyLand.Core/ClassDailyLand.Core.csproj" />
+    <Project Path="src/ClassDailyLand.Infrastructure/ClassDailyLand.Infrastructure.csproj" />
+    <Project Path="src/ClassDailyLand.Plugin.Abstractions/ClassDailyLand.Plugin.Abstractions.csproj" />
+    <Project Path="src/ClassDailyLand.PluginHost/ClassDailyLand.PluginHost.csproj" />
+    <Project Path="src/ClassDailyLand.Win32/ClassDailyLand.Win32.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ClassDailyLand.Tests/ClassDailyLand.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,27 @@
+## .NET 构建产物
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+
+## 运行时数据（用户本地配置，不应提交）
+settings/
+plugins/*
+!plugins/.gitkeep
+src/ClassDailyLand.App/settings/
+
+## 发布产物
+*.pdb
+*.nupkg
+
+## 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+## 打包残留
+*.zip

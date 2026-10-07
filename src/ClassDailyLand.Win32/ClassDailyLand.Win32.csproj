@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(WindowsTargetFramework)</TargetFramework>
+    <RootNamespace>ClassDailyLand.Win32</RootNamespace>
+    <!-- 本层专门调用 Win10/Win11 专有 API，运行时已有版本守卫，故关闭平台分析器噪音 -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+</Project>

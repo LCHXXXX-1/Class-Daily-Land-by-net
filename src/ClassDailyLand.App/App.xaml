@@ -1,0 +1,16 @@
+<Application x:Class="ClassDailyLand.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ThemeMode="System"
+             ShutdownMode="OnExplicitShutdown">
+
+    <!-- 触屏：所有滚动区默认支持手指平移 + 逐像素滚动。
+         对应源模块 ui_common.py 的 install_touch_scrolling（应用级兜底，
+         连插件控件 / 下拉列表一并覆盖）。鼠标拖拽由 DragScroll 附加行为按需开启。 -->
+    <Application.Resources>
+        <Style TargetType="ScrollViewer">
+            <Setter Property="PanningMode" Value="Both" />
+            <Setter Property="CanContentScroll" Value="False" />
+        </Style>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(WindowsTargetFramework)</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ClassDailyLand.PluginHost</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClassDailyLand.Core\ClassDailyLand.Core.csproj" />
+    <ProjectReference Include="..\ClassDailyLand.Plugin.Abstractions\ClassDailyLand.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

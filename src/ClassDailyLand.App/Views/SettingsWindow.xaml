@@ -1,0 +1,106 @@
+<Window x:Class="ClassDailyLand.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="设置"
+        Width="920"
+        Height="660"
+        MinWidth="720"
+        MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Microsoft YaHei UI">
+
+    <!--
+      结构对齐源项目 settings_dialog_v4：
+      顶部条（左侧标题 + 居中「查找设置」搜索框），其下为「左侧导航 + 右侧内容」。
+      源项目的顶部条同时充当自定义标题栏并带返回按钮；本版保留系统标题栏、
+      导航始终平铺可见（因此不需要返回按钮），只对齐搜索与整体分区。
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 顶部条 -->
+        <Border Grid.Row="0"
+                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="22,14,22,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="设置"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+
+                <!-- 搜索框：占位提示用叠层实现（WPF 的 TextBox 没有 placeholder） -->
+                <Grid Grid.Column="1"
+                      Width="440"
+                      HorizontalAlignment="Center">
+                    <TextBox x:Name="SearchBox"
+                             Padding="28,5,10,5"
+                             VerticalContentAlignment="Center"
+                             FontSize="13"
+                             TextChanged="OnSearchTextChanged"
+                             KeyDown="OnSearchKeyDown"
+                             GotKeyboardFocus="OnSearchFocusChanged"
+                             LostKeyboardFocus="OnSearchFocusChanged" />
+
+                    <TextBlock x:Name="SearchGlyph"
+                               Text="&#xE721;"
+                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="13"
+                               Opacity="0.55"
+                               IsHitTestVisible="False"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Left"
+                               Margin="9,0,0,0" />
+
+                    <TextBlock x:Name="SearchPlaceholder"
+                               Text="查找设置"
+                               Opacity="0.5"
+                               FontSize="13"
+                               IsHitTestVisible="False"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Left"
+                               Margin="28,0,0,0" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- 导航 + 内容 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="232" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧导航：Windows 11 设置风格（圆角选中块 + 左侧强调色条 + 图标） -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,1,0">
+                <ScrollViewer x:Name="NavScroll"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="NavPanel" Margin="6,10,6,14" />
+                </ScrollViewer>
+            </Border>
+
+            <!-- 右侧内容 -->
+            <ScrollViewer Grid.Column="1"
+                          x:Name="ContentScroll"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="32,24,32,32">
+                <StackPanel x:Name="ContentPanel" />
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>

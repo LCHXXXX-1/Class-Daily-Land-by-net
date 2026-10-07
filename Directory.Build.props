@@ -1,0 +1,28 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- 统一的基础构建约定，所有子项目继承 -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Product>Class Daily Land</Product>
+    <Company>Class Daily Land</Company>
+    <Version>4.3.0</Version>
+    <!--
+      目标系统下限：Windows 10 1809（Build 17763），与源项目一致。
+      必须写进 TFM 而不是只设 SupportedOSPlatformVersion —— 后者的默认值是 7.0，
+      直接设成 10.0.17763.0 会报 NETSDK1135。写进 TFM 后 SupportedOSPlatformVersion
+      会自动取同值，即「可在 Win10 1809 及以上运行」。
+    -->
+    <WindowsTargetFramework>net10.0-windows10.0.17763.0</WindowsTargetFramework>
+  </PropertyGroup>
+
+  <!-- Release 不生成调试符号：发布目录保持只含一个 exe -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+</Project>

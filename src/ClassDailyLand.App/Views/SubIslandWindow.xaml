@@ -1,0 +1,18 @@
+<Window x:Class="ClassDailyLand.App.Views.SubIslandWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ClassDailyLand.App.Views.Controls"
+        Title="副岛"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        ShowActivated="False"
+        UseLayoutRounding="True">
+
+    <!-- 整条胶囊由 SubIslandVisual 自绘（对应 sub_island.py 的 paintEvent） -->
+    <controls:SubIslandVisual x:Name="Visual" />
+</Window>
