@@ -126,13 +126,19 @@ git push
 
 客户端依次尝试三个镜像，任一成功即用：
 
-1. `https://cdn.jsdelivr.net/gh/LCHXXXX-1/Class-Daily-Land-by-net@plugin/list.json` ← 首选
-2. `https://raw.githubusercontent.com/...`
-3. `https://github.com/.../raw/plugin/list.json`
+1. `https://raw.githubusercontent.com/LCHXXXX-1/Class-Daily-Land-by-net/plugin/list.json` ← 首选，**3 秒短超时**
+2. `https://cdn.jsdelivr.net/gh/LCHXXXX-1/Class-Daily-Land-by-net@plugin/list.json` ← 兜底
+3. `https://github.com/LCHXXXX-1/Class-Daily-Land-by-net/raw/plugin/list.json`
 
-> 为什么 jsDelivr 排第一？国内直连 `raw.githubusercontent.com` 常年不通（实测 20s 超时），
-> 排第一会每次白等超时；jsDelivr 直连约 2s。三个都失败时退回**本地缓存**
-> （上次同步成功的那份），所以断网也能看到上次的列表。
+> **为什么 raw 排第一？** 它直读分支当前内容，刚上架的插件立刻可见。
+> 实测它多数时候很快（95–613ms），但偶发抽风会挂到 19 秒 —— 所以给它 3 秒上限，
+> 抽风就切走，正常时拿的是最新数据。
+>
+> **jsDelivr 为什么不排第一？** 它稳定（~1.5s）但缓存分支引用 **12 小时**，
+> 实测新推的包半小时内仍返回旧索引（`count=0`）。若排第一，
+> 「我刚发的插件怎么没出现」会变成常态，所以只当兜底。
+>
+> 三个都失败时退回**本地缓存**（上次同步成功的那份），断网也能看到上次的列表。
 
 ### 安装
 
