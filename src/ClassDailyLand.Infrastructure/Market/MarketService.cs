@@ -32,17 +32,19 @@ public sealed class MarketService
     private const string MarketBranch = "plugin";
 
     /// <summary>
-    /// jsDelivr 打头、GitHub 原址殿后。
+    /// raw 打头、jsDelivr 次之、github.com 收尾。
     ///
-    /// 顺序与旧版相反，原因很实际：raw.githubusercontent.com 在国内常年不通
-    /// （实测 20 秒超时），排第一意味着每次同步都要先白等 8 秒再换镜像。
-    /// jsDelivr 会缓存分支引用、刚推送的索引可能滞后片刻 —— 那是「稍慢」，
-    /// 而 raw 不通是「必然失败」，两害相权取其轻。
+    /// raw 直读分支当前内容，**刚上架的插件立刻可见**；实测多数时候不到 1 秒
+    /// （95–613ms），但偶发抽风会挂到 19 秒。所以给它一个 3 秒的短上限：
+    /// 正常时拿的是最新数据，抽风时 3 秒内切走，不留人干等。
+    ///
+    /// jsDelivr 稳定（~1.5s）却缓存分支引用 12 小时 —— 刚推送的索引会滞后半天，
+    /// 只适合当兜底，不能排第一，否则「我刚发的插件怎么没出现」会变成常态。
     /// </summary>
     private static readonly string[] MarketListUrls =
     {
-        $"https://cdn.jsdelivr.net/gh/{MarketRepo}@{MarketBranch}/list.json",
         $"https://raw.githubusercontent.com/{MarketRepo}/{MarketBranch}/list.json",
+        $"https://cdn.jsdelivr.net/gh/{MarketRepo}@{MarketBranch}/list.json",
         $"https://github.com/{MarketRepo}/raw/{MarketBranch}/list.json",
     };
 
@@ -54,8 +56,11 @@ public sealed class MarketService
     /// <summary>索引同步超时（秒）。</summary>
     private static readonly TimeSpan ListTimeout = TimeSpan.FromSeconds(30);
 
-    /// <summary>索引首地址专享的短上限：它内容最新但不一定通，8 秒没动静就换镜像。</summary>
-    private static readonly TimeSpan FastListTimeout = TimeSpan.FromSeconds(8);
+    /// <summary>
+    /// 索引首地址专享的短上限：raw 最快也最新，但不保证每次都通，
+    /// 3 秒没动静就换 jsDelivr 兜底，不让人干等。
+    /// </summary>
+    private static readonly TimeSpan FastListTimeout = TimeSpan.FromSeconds(3);
 
     /// <summary>插件包下载超时。慢网下 90KB 的包也得让人家爬完，别半路掐断。</summary>
     private static readonly TimeSpan DownloadTimeout = TimeSpan.FromSeconds(60);
