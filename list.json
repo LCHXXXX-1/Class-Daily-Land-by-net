@@ -2,6 +2,24 @@
   "schema": 1,
   "repo": "LCHXXXX-1/Class-Daily-Land-by-net",
   "branch": "plugin",
-  "count": 0,
-  "plugins": []
+  "count": 1,
+  "plugins": [
+    {
+      "package_name": "class.test.sample-clock",
+      "name": "sample-clock",
+      "display_name": "示例时钟",
+      "author_id": "test",
+      "author_name": "test",
+      "version": "1.0.0",
+      "api_version": 1,
+      "description": "端到端验证用的示例插件（可随时删除）",
+      "entry": "main.dll",
+      "requires": [],
+      "file": "plugins/class.test.sample-clock.cblplugin",
+      "size": 438,
+      "sha256": "ca9eda30c94c5d497a3b09cd110b7a00d10e04a324ea0b445d06f3f6da6cce1a",
+      "url": "https://github.com/LCHXXXX-1/Class-Daily-Land-by-net/raw/plugin/plugins/class.test.sample-clock.cblplugin",
+      "uploaded_at": "2026-10-10T12:09:09.260Z"
+    }
+  ]
 }
