@@ -223,7 +223,10 @@ public partial class SettingsWindow
         {
             _marketList.Children.Add(new TextBlock
             {
-                Text = "索引尚未同步，点「同步索引」从插件服务器获取列表。",
+                // 同步成功但仓库里还没有插件时，别写成「尚未同步」——那会把人引去反复点同步
+                Text = _market.LastSyncText.Length > 0
+                    ? "索引已同步，当前仓库里还没有插件。把 .cblplugin 包放进 plugin 分支即可上架。"
+                    : "索引尚未同步，点「同步索引」从插件仓库获取列表。",
                 Opacity = 0.7,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 4),
