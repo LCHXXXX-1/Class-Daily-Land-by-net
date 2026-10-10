@@ -98,11 +98,15 @@ public sealed class AppSettings
     [JsonPropertyName("disabled_plugins")]
     public List<string> DisabledPlugins { get; set; } = new();
 
+    /// <summary>
+    /// 插件市场来源。新版市场只有 by-net 仓库一个来源，该字段已不再参与分支逻辑，
+    /// 仅为兼容旧版 settings.json 保留（旧值 official / gitee 读入后不再生效）。
+    /// </summary>
     [JsonPropertyName("market_source")]
-    public string MarketSource { get; set; } = "official";      // official / github / gitee
+    public string MarketSource { get; set; } = "github";        // 遗留字段：现固定走 by-net 仓库
 
     [JsonPropertyName("packages_source")]
-    public string PackagesSource { get; set; } = "gitee";       // gitee / github
+    public string PackagesSource { get; set; } = "github";      // 依赖包源：现固定 by-net 仓库的 packages/
 
     [JsonPropertyName("packages_base_url")]
     public string PackagesBaseUrl { get; set; } = "";           // 空串 = 按 packages_source 取内置地址

@@ -314,17 +314,29 @@ public class PackageDatabaseTests
 public class PackageSourcesTests
 {
     [Fact]
-    public void 默认源是gitee()
-        => Assert.Equal("gitee", PackageSources.DefaultSourceId);
+    public void 默认源是github()
+        => Assert.Equal("github", PackageSources.DefaultSourceId);
 
     [Fact]
-    public void 主地址加镜像按顺序返回()
+    public void 主地址是CDN镜像排在其后()
     {
         var github = PackageSources.ResolveBases("github");
 
-        Assert.Equal(2, github.Count);
-        Assert.StartsWith("https://raw.githubusercontent.com/", github[0]);
-        Assert.StartsWith("https://cdn.jsdelivr.net/", github[1]);
+        // jsDelivr 打头（国内可直连），GitHub 原址兜底
+        Assert.Equal(3, github.Count);
+        Assert.StartsWith("https://cdn.jsdelivr.net/", github[0]);
+        Assert.StartsWith("https://raw.githubusercontent.com/", github[1]);
+        Assert.StartsWith("https://github.com/", github[2]);
+    }
+
+    [Fact]
+    public void 主地址指向by_net仓库的plugin分支()
+    {
+        foreach (var url in PackageSources.ResolveBases("github"))
+        {
+            Assert.Contains("LCHXXXX-1/Class-Daily-Land-by-net", url);
+            Assert.Contains("plugin/packages", url);
+        }
     }
 
     [Fact]
@@ -339,7 +351,7 @@ public class PackageSourcesTests
     [Fact]
     public void 未知源回落到默认源()
     {
-        Assert.Equal(PackageSources.ResolveBases("gitee"), PackageSources.ResolveBases("不存在"));
+        Assert.Equal(PackageSources.ResolveBases("github"), PackageSources.ResolveBases("不存在"));
         Assert.Equal(PackageSources.ResolveBases(null), PackageSources.ResolveBases(""));
     }
 
@@ -348,7 +360,6 @@ public class PackageSourcesTests
     {
         var options = PackageSources.Options;
 
-        Assert.Contains(("Gitee", "gitee"), options);
         Assert.Contains(("GitHub", "github"), options);
     }
 }

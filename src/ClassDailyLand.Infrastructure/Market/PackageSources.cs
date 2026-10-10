@@ -3,8 +3,8 @@ namespace ClassDailyLand.Infrastructure.Market;
 /// <summary>一个依赖清单源。</summary>
 /// <param name="Id">源 id（写进 settings.packages_source）。</param>
 /// <param name="Label">显示名。</param>
-/// <param name="Base">主清单地址（raw 直链）。</param>
-/// <param name="Mirrors">备用镜像，按顺序重试（GitHub raw 在国内常连不通，配 jsDelivr）。</param>
+/// <param name="Base">主清单地址（国内可直连的 jsDelivr CDN）。</param>
+/// <param name="Mirrors">备用镜像，按顺序重试（GitHub 原址在国内常连不通，故排在 CDN 之后）。</param>
 /// <param name="Api">Contents API 地址（返回文件列表 JSON），用于列出该源有哪些包。</param>
 public sealed record PackageSource(
     string Id,
@@ -26,23 +26,22 @@ public sealed record PackageSource(
 /// </summary>
 public static class PackageSources
 {
-    public const string DefaultSourceId = "gitee";
+    public const string DefaultSourceId = "github";
 
     private static readonly Dictionary<string, PackageSource> All = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["gitee"] = new PackageSource(
-            "gitee",
-            "Gitee",
-            "https://gitee.com/lchxxxx/class-daily-land/raw/plugins/packages",
-            Array.Empty<string>(),
-            "https://gitee.com/api/v5/repos/lchxxxx/class-daily-land/contents/packages?ref=plugins"),
-
+        // 依赖包统一挂在 by-net 仓库的 plugin 分支 packages/ 目录下。
+        // 与插件索引同仓同分支，维护一处即可；jsDelivr 打头、GitHub 原址兜底。
         ["github"] = new PackageSource(
             "github",
             "GitHub",
-            "https://raw.githubusercontent.com/LCHXXXX-1/Class-Daily-Land/plugins/packages",
-            new[] { "https://cdn.jsdelivr.net/gh/LCHXXXX-1/Class-Daily-Land@plugins/packages" },
-            "https://api.github.com/repos/LCHXXXX-1/Class-Daily-Land/contents/packages?ref=plugins"),
+            "https://cdn.jsdelivr.net/gh/LCHXXXX-1/Class-Daily-Land-by-net@plugin/packages",
+            new[]
+            {
+                "https://raw.githubusercontent.com/LCHXXXX-1/Class-Daily-Land-by-net/plugin/packages",
+                "https://github.com/LCHXXXX-1/Class-Daily-Land-by-net/raw/plugin/packages",
+            },
+            "https://api.github.com/repos/LCHXXXX-1/Class-Daily-Land-by-net/contents/packages?ref=plugin"),
     };
 
     /// <summary>清单服务器兜底地址（settings.packages_base_url 为空时按 packages_source 取）。</summary>

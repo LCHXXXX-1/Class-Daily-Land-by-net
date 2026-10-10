@@ -12,7 +12,7 @@ namespace ClassDailyLand.Infrastructure.Market;
 /// 插件市场。对应源模块：plugin_market.py 的 PluginMarket。
 ///
 /// 职责：
-/// 1. 从三个来源（官方服务器 / GitHub / Gitee）同步索引，全挂时退回本地缓存；
+/// 1. 从 by-net 仓库的 plugin 分支同步索引，联网失败时退回本地缓存；
 /// 2. 扫描本地 plugins/ 目录，给索引条目附加安装状态；
 /// 3. 下载 → SHA-256 校验 → 备份 → 解压 → 写元数据的原子安装；
 /// 4. 卸载与启用 / 禁用。
@@ -22,34 +22,32 @@ namespace ClassDailyLand.Infrastructure.Market;
 /// </summary>
 public sealed class MarketService
 {
-    // ---------- 索引来源（与源项目常量逐字对齐）----------
-    private const string GitHubRepo = "LCHXXXX-1/Class-Daily-Land";
-    private const string GitHubBranch = "plugins";
+    // ---------- 索引来源 ----------
+    // 新版（.NET 版）插件市场统一挂在 by-net 仓库的 plugin 分支：
+    //   list.json            聚合索引（由 tools/build-index.mjs 自动生成）
+    //   plugins/*.cblplugin  插件包本体
+    // 这是唯一来源；旧的 de5.net 官方服务器与 Gitee 镜像都已下线
+    // （它们托管的是 Python 版插件，.NET 宿主本来也加载不了）。
+    private const string MarketRepo = "LCHXXXX-1/Class-Daily-Land-by-net";
+    private const string MarketBranch = "plugin";
 
     /// <summary>
-    /// raw 打头、jsDelivr 殿后：jsDelivr 会缓存 GitHub 文件（分支引用能滞后
-    /// 好几个小时），刚发布的插件可能半天刷不出来，所以先去 raw 拿新鲜的。
+    /// jsDelivr 打头、GitHub 原址殿后。
+    ///
+    /// 顺序与旧版相反，原因很实际：raw.githubusercontent.com 在国内常年不通
+    /// （实测 20 秒超时），排第一意味着每次同步都要先白等 8 秒再换镜像。
+    /// jsDelivr 会缓存分支引用、刚推送的索引可能滞后片刻 —— 那是「稍慢」，
+    /// 而 raw 不通是「必然失败」，两害相权取其轻。
     /// </summary>
-    private static readonly string[] GitHubListUrls =
+    private static readonly string[] MarketListUrls =
     {
-        $"https://raw.githubusercontent.com/{GitHubRepo}/{GitHubBranch}/list.json",
-        $"https://cdn.jsdelivr.net/gh/{GitHubRepo}@{GitHubBranch}/list.json",
+        $"https://cdn.jsdelivr.net/gh/{MarketRepo}@{MarketBranch}/list.json",
+        $"https://raw.githubusercontent.com/{MarketRepo}/{MarketBranch}/list.json",
+        $"https://github.com/{MarketRepo}/raw/{MarketBranch}/list.json",
     };
 
-    private const string RemoteListUrl = "https://plugins.class-daily-land.de5.net/list.json";
-
-    private const string GiteeRepo = "lchxxxx/class-daily-land";
-    private const string GiteeBranch = "plugins";
-
-    private static readonly string[] GiteeListUrls =
-    {
-        $"https://gitee.com/{GiteeRepo}/raw/{GiteeBranch}/list.json",
-    };
-
-    /// <summary>各来源列表的本地缓存文件名（下划线开头，避免与插件实体文件混淆）。</summary>
-    private const string RemoteCacheName = "_remote_list.json";
-    private const string GitHubCacheName = "_github_list.json";
-    private const string GiteeCacheName = "_gitee_list.json";
+    /// <summary>索引的本地缓存文件名（下划线开头，避免与插件实体文件混淆）。</summary>
+    private const string MarketCacheName = "_github_list.json";
 
     private const string UserAgent = "ClassDailyLand-PluginMarket/4.2";
 
@@ -119,17 +117,16 @@ public sealed class MarketService
     // ================= 同步 =================
 
     /// <summary>
-    /// 按设置挑索引来源 → 拉索引 → 刷新目录（对应 check_updates）。
+    /// 拉取索引 → 刷新目录（对应 check_updates）。
     ///
-    /// 联网全挂时**退回本地缓存**（上次同步成功的那份），
+    /// 联网失败时**退回本地缓存**（上次同步成功的那份），
     /// 别让网络一抽风就把列表清空、只剩一句「同步没成功」。连缓存都没有，那才算真失败。
     /// </summary>
     public async Task<MarketSyncResult> CheckUpdatesAsync(CancellationToken ct = default)
     {
         using var busy = BeginTask();
 
-        var source = _settings.Current.MarketSource;
-        Log($"开始同步插件索引（来源：{source}）…");
+        Log("开始同步插件索引（来源：by-net 仓库 plugin 分支）…");
 
         var errors = new List<string>();
 
@@ -142,7 +139,7 @@ public sealed class MarketService
             }
             catch (OperationCanceledException)
             {
-                throw;   // 主动中止（切源 / 退出）：不兜底
+                throw;   // 主动中止（退出）：不兜底
             }
             catch (Exception ex)
             {
@@ -152,29 +149,7 @@ public sealed class MarketService
             }
         }
 
-        MarketSyncResult? got;
-
-        switch (source)
-        {
-            case "github":
-                got = await AttemptAsync("GitHub", SyncGitHubListAsync, GitHubCacheName).ConfigureAwait(false);
-                break;
-
-            case "gitee":
-                got = await AttemptAsync("Gitee", SyncGiteeListAsync, GiteeCacheName).ConfigureAwait(false);
-                break;
-
-            default:
-                got = await AttemptAsync("官方服务器", SyncRemoteListAsync, RemoteCacheName).ConfigureAwait(false);
-
-                if (got is null)
-                {
-                    Log("换 GitHub 顶上…");
-                    got = await AttemptAsync("GitHub", SyncGitHubListAsync, GitHubCacheName).ConfigureAwait(false);
-                }
-
-                break;
-        }
+        var got = await AttemptAsync("GitHub", SyncMarketListAsync, MarketCacheName).ConfigureAwait(false);
 
         if (got is null)
         {
@@ -219,89 +194,59 @@ public sealed class MarketService
         CatalogReady?.Invoke(this, result);
     }
 
-    // ---------- 三个来源 ----------
-
-    /// <summary>下载官方聚合列表写进本地缓存，返回来源标识 remote-list。</summary>
-    private async Task<string> SyncRemoteListAsync(CancellationToken ct)
-    {
-        var json = await FetchAsync(RemoteListUrl, ListTimeout, ct).ConfigureAwait(false);
-
-        JsonElement root;
-        try
-        {
-            using var document = JsonDocument.Parse(json);
-            root = document.RootElement.Clone();
-        }
-        catch (JsonException ex)
-        {
-            throw new InvalidDataException($"远程列表不是有效 JSON：{ex.Message}");
-        }
-
-        var result = RemoteListParser.Parse(root);
-
-        if (result.ProblemCount > 0)
-            Log($"远程列表里 {result.ProblemCount} 条记录有问题，仍会显示在列表中并标注原因");
-
-        // 空列表按「不可用」处理，交给别的来源兜底，避免页面空白
-        if (result.IsEmpty) throw new InvalidDataException("远程列表里没有任何可用插件");
-
-        WriteListCache(RemoteCacheName, json);
-        Log($"远程列表同步成功（{result.Entries.Count} 个插件）");
-        return "remote-list";
-    }
-
-    private Task<string> SyncGitHubListAsync(CancellationToken ct)
-        => SyncMirrorListAsync(GitHubListUrls, GitHubCacheName, "github-list", "GitHub", ct);
-
-    private Task<string> SyncGiteeListAsync(CancellationToken ct)
-        => SyncMirrorListAsync(GiteeListUrls, GiteeCacheName, "gitee-list", "Gitee", ct);
+    // ---------- 索引来源（by-net 仓库 plugin 分支）----------
 
     /// <summary>
-    /// 从多个镜像 URL 拉取聚合列表写进本地缓存。
-    /// 格式与官方列表一致，复用 <see cref="RemoteListParser"/>；多个镜像按顺序试，全失败才报错。
+    /// 从 by-net 仓库拉取聚合索引写进本地缓存。
+    ///
+    /// 多个镜像按顺序试（jsDelivr → raw → github.com），全失败才报错。
+    /// 索引为空（仓库里还没上传任何插件）**不算失败**：只要 HTTP 200 且 JSON 合法，
+    /// 就如实展示「暂无插件」，而不是误报同步失败、把界面搞成一片空白。
     /// </summary>
-    private async Task<string> SyncMirrorListAsync(
-        string[] urls, string cacheName, string sourceId, string label, CancellationToken ct)
+    private async Task<string> SyncMarketListAsync(CancellationToken ct)
     {
         string? json = null;
         var lastError = "";
 
-        for (var i = 0; i < urls.Length; i++)
+        for (var i = 0; i < MarketListUrls.Length; i++)
         {
             ct.ThrowIfCancellationRequested();
 
-            // 头一个地址最新但不一定通，给它短上限；换镜像再放宽
+            // 头一个地址（jsDelivr）最快，给短上限；换镜像再放宽
             var timeout = i == 0 ? FastListTimeout : ListTimeout;
 
             try
             {
-                json = await FetchAsync(urls[i], timeout, ct).ConfigureAwait(false);
+                json = await FetchAsync(MarketListUrls[i], timeout, ct).ConfigureAwait(false);
                 break;
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
                 lastError = "请求超时";
-                Log($"{label} 列表源不通（{HostOf(urls[i])}）：{lastError}");
+                Log($"索引源不通（{HostOf(MarketListUrls[i])}）：{lastError}");
             }
             catch (Exception ex)
             {
                 lastError = ex.Message;
-                Log($"{label} 列表源不通（{HostOf(urls[i])}）：{lastError}");
+                Log($"索引源不通（{HostOf(MarketListUrls[i])}）：{lastError}");
             }
         }
 
-        if (json is null) throw new IOException($"{label} 列表拉取失败：{lastError}");
+        if (json is null) throw new IOException($"索引拉取失败：{lastError}");
 
         var result = RemoteListParser.Parse(json);
 
         if (result.ProblemCount > 0)
-            Log($"{label} 列表里 {result.ProblemCount} 条记录有问题，仍会显示在列表中并标注原因");
+            Log($"索引里 {result.ProblemCount} 条记录有问题，仍会显示在列表中并标注原因");
 
-        if (result.IsEmpty) throw new InvalidDataException($"{label} 列表里没有任何可用插件");
+        WriteListCache(MarketCacheName, json);
 
-        WriteListCache(cacheName, json);
-        Log($"{label} 列表同步成功（{result.Entries.Count} 个插件）");
-        return sourceId;
+        if (result.IsEmpty)
+            Log("索引同步成功，但仓库里还没有插件");
+        else
+            Log($"索引同步成功（{result.Entries.Count} 个插件）");
+
+        return "github-list";
     }
 
     private async Task<string> FetchAsync(string url, TimeSpan timeout, CancellationToken ct)
@@ -348,17 +293,17 @@ public sealed class MarketService
     // ================= 索引扫描 + 本地状态 =================
 
     /// <summary>
-    /// 读索引条目（优先 preferred 缓存，其次官方列表，再退 GitHub / Gitee），
-    /// 并给每条附加本地安装状态。
+    /// 读索引条目（优先 preferred 缓存，其次市场缓存），并给每条附加本地安装状态。
     /// </summary>
     public List<MarketEntry> ScanIndex(string? preferred = null)
     {
         var names = new List<string>();
         if (!string.IsNullOrEmpty(preferred)) names.Add(preferred);
 
-        names.Add(RemoteCacheName);
-        names.Add(GitHubCacheName);
-        names.Add(GiteeCacheName);
+        // 只认 by-net 市场的缓存。旧版的 _remote_list.json / _gitee_list.json
+        // 即使还留在磁盘上也不再读取 —— 它们装的是 Python 版插件，.NET 宿主加载不了，
+        // 读进来只会让列表混入一堆「装得上、跑不了」的条目。
+        names.Add(MarketCacheName);
 
         foreach (var name in names)
         {
