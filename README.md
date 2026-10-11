@@ -175,6 +175,62 @@ C# 版**刻意对齐了源项目的配置文件格式**（字段名全部保持 
 
 ## 已实现
 
+### 设置中心：Web 版优先，原生版兜底
+
+设置中心有两套实现，运行时自动挑：
+
+| 实现 | 界面来自 | 何时使用 |
+|---|---|---|
+| `Views/SettingsWebWindow.xaml(.cs)` + `Services/WebUiBridge.cs` | 仓库根的 `ui/`（HTML/CSS，与 Python 版**同一份**） | 默认。由 WebView2 渲染 |
+| `Views/SettingsWindow` | WPF 自绘（原有实现） | 找不到 `ui/`、机器上没装 WebView2 运行时、或 Web 版加载失败后用户选择回退 |
+
+两套提供的是同一批设置项，字段名、取值范围、提示文案出自同一份定义；
+界面与宿主之间走 13 个 RPC 方法（清单见 `ui/README.md`）。
+**灵动岛、副岛、班级日常主窗、下拉面板仍是原生 WPF，本次未改。**
+
+Web 版加载失败时不会留一个白窗口：
+
+- 会说出卡在哪一步（创建内核 / 加载界面）、页面报了什么脚本错；
+- 兜底面板上给一个「改用原生设置窗口」按钮，一键切到 `SettingsWindow`；
+- 诊断信息追加到 `<配置目录>\webui-error.log`（WebView2 运行时版本、界面目录、
+  页面报错、卡住的步骤），遇到问题时把这个文件发过来即可定位。
+
+另外，拖动滑块时**整个界面跟刷新了一样**的问题已经修掉。根因不在滑块，而在「设置一变就全量重做」，
+其中最主要的是一条：
+
+- **`App.xaml.cs` 的 `settings.Changed` 原先无条件调 `ThemeBridge.Apply(theme_mode)`。**
+  它写的是 `Application.ThemeMode`，而**这个属性不是依赖属性**，写进去的值和原来一模一样
+  也会被完整执行：离屏 WPF 探针实测，反复写同一个值 20 次，窗口内容的 `Unloaded` / `Loaded`
+  各触发 20 次（视觉树被整个拆掉重建），单次约 53ms。对 WebView2 宿主就等于 `HwndHost`
+  被销毁重建 —— **页面真的重新加载一遍**。现在留了一份 `appliedThemeMode`，值没变就跳过。
+
+另外两处同类问题也一起改成按变化量分级：
+
+- `SettingsWebWindow.OnSettingsChanged` 原先每次都重写 `Profile.PreferredColorScheme` 与
+  `Web.DefaultBackgroundColor`（写同样的值也会让 WebView2 重画整块绘制表面）→ 现在有
+  `_appliedDark` 守卫（原生窗口的 `_lastAppliedDark` 一直是这么做的）；
+- `AppController.ApplySettings` 原先每次都重建作业列表、重绘灵动岛、重建托盘菜单
+  → 现在岛相关字段、三个显示开关各自一组签名，主窗内容只在字体 / 滚动参数 / 深浅色
+  真的变了时才重建，宽度也没变就连几何都不重算。
+
+滑块本身也按 WinUI 3 规格重做（4px 轨道 + 强调色填充 + 外圆套内点的双层圆点），
+改用 DOM 元素绘制，不再依赖 `input[type=range]` 的伪元素。
+
+### 二级对话框：四个已搬进 Web 层
+
+假期与调休 / 周末作息 / 值日生名单 / 作业编辑器这**四个**已经改为在设置窗口内部
+以浮层打开（共用 `ui/pages/dialogs.js`），两端行为一致。名单与文稿一律走
+`Services/WebUiBridge.cs` 里新加的那批 RPC（`schedule.holidays.*` / `schedule.weekend.*` /
+`duty.*` / `homework.*`，清单见 `ui/README.md`）。
+
+作业编辑器同时支持**内嵌**进设置中心的「作业」页 —— 与原生一样不带取消/确认、
+改动即时生效；独立的「编辑作业」对话框用的是同一个编辑器本体。
+
+课表管理 / 课表编辑器、状态测试这两个还没搬，仍走原生 `dialog.open`。
+
+发布注意：`Microsoft.Web.WebView2` 会带入本地库 `WebView2Loader.dll`，
+Release 分支已开启 `IncludeNativeLibrariesForSelfExtract`，单文件发布才起得来。
+
 ### 界面（已与源项目逐项对齐）
 - ✅ **主窗口**：无边框、贴屏幕右边缘、高度随内容自适应
   - 标题「班级日常」+「今日值日生：X」+「应到 X 人 · 实到 X 人」

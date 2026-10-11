@@ -319,14 +319,49 @@ public partial class MainWindow : Window
 
     // ================= 设置应用 =================
 
+    /// <summary>
+    /// 上一次应用过的、会影响「内容渲染」的设置。
+    ///
+    /// 存的是值，不是引用 —— <c>_settings.Current</c> 是**就地改**的，
+    /// 每次传进来的都是同一个实例，比引用永远相等，也就永远看不出变化。
+    /// </summary>
+    private (double FontSize, bool AutoScroll, int Interval, int Step, int Pause, bool Dark)? _appliedContent;
+
+    /// <summary>上一次应用过的窗口宽度比例。几何重算（要 Measure 两个面板）只在它变了时才做。</summary>
+    private double? _appliedWidthRatio;
+
     /// <summary>应用主窗口相关设置（对应 apply_main_settings）。</summary>
     public void ApplyMainSettings(AppSettings settings)
     {
         _current = settings;
         _fontSize = settings.MainFontSize <= 0 ? 14 : settings.MainFontSize;
 
+        // ★ 只有「内容」真的变了才重建作业列表。
+        //
+        //   RefreshContent() 里 RenderHomework() 是「先 Children.Clear() 再逐行 Add」，
+        //   做一次整个列表就重画一遍。而设置一变就会走到这里 ——
+        //   拖「窗口宽度 / 窗口透明度」这种纯外观项时每 150ms 白重建一次，
+        //   表现出来就是班级日常主窗一闪一闪。
+        //   深/浅色也算在内：换主题时列表配色要跟着重刷。
+        var content = (_fontSize,
+                       settings.MainAutoScroll,
+                       settings.MainScrollInterval,
+                       settings.MainScrollStep,
+                       settings.MainScrollPause,
+                       ThemeBridge.IsDark);
+
+        var contentChanged = _appliedContent != content;
+        _appliedContent = content;
+
+        // 几何里要 Measure 两个面板，也是纯浪费，同样按变化量把关。
+        var widthChanged = _appliedWidthRatio is null
+            || Math.Abs(_appliedWidthRatio.Value - settings.MainWidthRatio) > 1e-9;
+        _appliedWidthRatio = settings.MainWidthRatio;
+
         ApplyOpacity(settings.MainOpacity);
-        RefreshContent();
+
+        if (contentChanged) RefreshContent();          // 内部已经带了 AdjustWindowGeometry
+        else if (widthChanged) AdjustWindowGeometry(); // 内容没变，只有宽度可能变了
     }
 
     public void ApplyOpacity(double opacity) => Opacity = Math.Clamp(opacity, 0.1, 1.0);

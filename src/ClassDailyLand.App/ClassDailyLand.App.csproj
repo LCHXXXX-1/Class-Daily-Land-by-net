@@ -32,6 +32,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <!--
+      设置中心改用 WebView2 渲染仓库根的 ui/（与 Python 版共用同一份 HTML/CSS）。
+      WebView2Loader 是本地库，单文件发布必须靠 Release 分支里的
+      IncludeNativeLibrariesForSelfExtract 一起打包，否则 exe 起不来。
+    -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,6 +48,30 @@
       这样能精确控制哪些窗口带材质、以及在 Win10 上如何降级。
     -->
     <RuntimeHostConfigurationOption Include="Switch.System.Windows.Appearance.DisableFluentThemeWindowBackdrop" Value="true" />
+  </ItemGroup>
+
+  <!--
+    设置界面（仓库根的 ui/，与 Python 版共用同一份）随构建落到输出的 ui\ 下。
+    运行时由 SettingsWebWindow 用虚拟主机映射加载，找不到时会自动向上逐级查找，
+    所以开发态（bin 深处）与发布态（exe 旁边的 ui\）都能跑。
+  -->
+  <PropertyGroup>
+    <SharedUiDir>$(MSBuildThisFileDirectory)..\..\ui\</SharedUiDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="$(SharedUiDir)index.html" Link="ui\index.html"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(SharedUiDir)index-qt.html" Link="ui\index-qt.html"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(SharedUiDir)host.js" Link="ui\host.js"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(SharedUiDir)lib\*.js" Link="ui\lib\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(SharedUiDir)pages\*.js" Link="ui\pages\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(SharedUiDir)styles\*.css" Link="ui\styles\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--

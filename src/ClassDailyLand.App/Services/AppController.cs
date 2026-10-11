@@ -1,5 +1,9 @@
+using System.Reflection;
+using System.Text;
+using System.Text.Json.Serialization;
 using ClassDailyLand.App.Views;
 using ClassDailyLand.Core.Abstractions;
+using ClassDailyLand.Core.Models;
 
 namespace ClassDailyLand.App.Services;
 
@@ -19,6 +23,12 @@ internal sealed class AppController : IAppController
     private IslandWindow? _island;
     private SubIslandWindow? _subIsland;
     private TrayIconHost? _tray;
+
+    /// <summary>上一次下发时岛相关字段的签名，见 <see cref="ApplySettings"/>。</summary>
+    private string? _appliedIslandSignature;
+
+    /// <summary>上一次下发时三个显示开关的签名。</summary>
+    private string? _appliedVisibilitySignature;
 
     public event EventHandler<bool>? MainVisibilityChanged;
     public event EventHandler<bool>? IslandVisibilityChanged;
@@ -94,23 +104,75 @@ internal sealed class AppController : IAppController
     /// <summary>
     /// 把当前设置一次性下发到所有组件（对应 controller.apply_settings）。
     /// 顺序刻意固定：先让窗口自身应用外观，再处理可见性，最后刷新内容。
+    ///
+    /// ★ 这里刻意做了「按变化量分级」：<c>_settings.Update</c> 之后 Changed 一定会触发，
+    ///   但事件本身不告诉你哪个字段变了。而下面这几件事都是重活 ——
+    ///   重建作业列表、重绘灵动岛、重建托盘菜单。拖动滑块时每 150ms 就走一遍全量下发，
+    ///   那些没变的项也跟着重做，表现出来就是「整个窗口一闪一闪」。
+    ///   所以每件重活都由一组字段签名把关：签名没变就不做。
     /// </summary>
     public void ApplySettings()
     {
         var settings = _settings.Current;
 
-        _main?.ApplyMainSettings(settings);
-        _island?.ApplySettings(settings);
-        _subIsland?.ApplySettings(settings);
+        // 岛的外观 / 位置相关字段（island_* 与 sub_island_*；show_* 那三个不算）。
+        var islandSignature = SignatureOf(settings,
+            name => name.StartsWith("island_", StringComparison.Ordinal)
+                 || name.StartsWith("sub_island_", StringComparison.Ordinal));
 
-        ShowMain(settings.ShowMainWindow);
-        ShowIsland(settings.ShowIsland);
-        ShowSubIsland(settings.ShowSubIsland);
+        var visibilitySignature = $"{settings.ShowMainWindow}|{settings.ShowIsland}|{settings.ShowSubIsland}";
+
+        // 首次下发（启动）时两个签名都是 null，自然全量做一遍。
+        var islandChanged = _appliedIslandSignature != islandSignature;
+        var visibilityChanged = _appliedVisibilitySignature != visibilitySignature;
+
+        _appliedIslandSignature = islandSignature;
+        _appliedVisibilitySignature = visibilitySignature;
+
+        _main?.ApplyMainSettings(settings);
+
+        if (islandChanged || visibilityChanged)
+        {
+            // 这两个内部会走 AnimateTop + Tick（重绘）。岛相关的东西没变时，
+            // 每 150ms 重绘一次灵动岛是纯浪费，而且看得见。
+            _island?.ApplySettings(settings);
+            _subIsland?.ApplySettings(settings);
+        }
+
+        if (visibilityChanged)
+        {
+            ShowMain(settings.ShowMainWindow);
+            ShowIsland(settings.ShowIsland);
+            ShowSubIsland(settings.ShowSubIsland);
+        }
 
         SetMainOpacity(settings.MainOpacity);
 
-        NotifyIslandDirty();
-        RefreshTray();
+        // 重新拉插件内容 / 副岛内容：只在岛相关设置真的变了时做
+        if (islandChanged) NotifyIslandDirty();
+
+        // 托盘菜单只有那三个勾选状态会随设置变
+        if (visibilityChanged) RefreshTray();
+    }
+
+    /// <summary>
+    /// 把一组设置字段拼成字符串签名，用来判断「这次的变化值不值得做那件重活」。
+    ///
+    /// 字段按配置键（snake_case）前缀挑，以后加了字段会自动纳入，不用回来改这里。
+    /// </summary>
+    private static string SignatureOf(AppSettings settings, Func<string, bool> pick)
+    {
+        var text = new StringBuilder();
+
+        foreach (var property in typeof(AppSettings).GetProperties())
+        {
+            var name = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? property.Name;
+            if (!pick(name)) continue;
+
+            text.Append(name).Append('=').Append(property.GetValue(settings)).Append(';');
+        }
+
+        return text.ToString();
     }
 
     /// <summary>退出前清理：停止插件、释放托盘图标。</summary>

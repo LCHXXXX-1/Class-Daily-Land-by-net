@@ -179,9 +179,40 @@ public partial class App : Application
         _controller.AttachTray(tray);
 
         // ---- 设置变更统一分发 ----
+        //
+        // ★ 主题只在这项真的换了的时候才重新应用 —— 这是「拖滑块整个界面跟刷新了一样」
+        //   的解药。
+        //
+        //   ThemeBridge.Apply 写的是 Application.ThemeMode，而它**不是依赖属性**
+        //   （typeof(Application) 上找不到 ThemeModeProperty 字段），所以写进去的值
+        //   和原来一样也一样会被执行。实测（离屏 WPF 探针，见本轮实验）：
+        //   反复写同一个值 20 次，窗口内容的 Unloaded / Loaded 各触发 20 次 ——
+        //   视觉树被整个拆掉重建，单次约 53ms。而设置一变就会走到这里，
+        //   拖滑块时约 150ms 一次。
+        //
+        //   （补充实测，更正上一轮的描述：HwndHost 的**原生子窗口并没有被销毁重建**
+        //     —— 探针里 BuildWindowCore 只被调过 1 次。真正发生的是控件被卸下再挂回，
+        //     WebView2 会跟着隐藏再显示，看起来就是「闪一下」。）
+        //
+        //   SettingsWebWindow 另外在构造时显式钉住了自己的 Window.ThemeMode
+        //   （探针证明：显式设过的窗口完全不受 Application.ThemeMode 影响），
+        //   所以下面这次调用不会再惊动设置窗口里的网页 —— 网页换肤由页内 CSS
+        //   自己按 200ms 交叉淡入完成。岛 / 主窗是原生内容，该跟着换就换。
+        //
+        //   注册这里的时候主题已经在上面的「---- 主题 ----」里应用过一次了，
+        //   所以初值直接取当前值，不用等第一次变更。
+        var appliedThemeMode = settings.Current.ThemeMode;
+
         settings.Changed += (_, _) =>
         {
-            ThemeBridge.Apply(settings.Current.ThemeMode);
+            var mode = settings.Current.ThemeMode;
+
+            if (!string.Equals(mode, appliedThemeMode, StringComparison.Ordinal))
+            {
+                appliedThemeMode = mode;
+                ThemeBridge.Apply(mode);
+            }
+
             _controller.ApplySettings();
         };
 
@@ -354,6 +385,12 @@ public partial class App : Application
         services.AddSingleton<MainWindow>();
         services.AddSingleton<IslandWindow>();
         services.AddSingleton<SubIslandWindow>();
+
+        // 设置中心有两套实现，看谁跑得起来：
+        //   SettingsWebWindow  —— 新：WebView2 渲染仓库根的 ui/（与 Python 版同一份界面）
+        //   SettingsWindow     —— 旧：纯 WPF 自绘，作为拿不到 WebView2 运行时 / 界面文件时的回退
+        services.AddTransient<WebUiBridge>();
+        services.AddTransient<SettingsWebWindow>();
         services.AddTransient<SettingsWindow>();
 
         return services.BuildServiceProvider();
@@ -379,13 +416,43 @@ public partial class App : Application
 
     // ================= 托盘的入口 =================
 
-    /// <summary>打开设置中心（对应源项目 tray / 主窗口菜单的「设置」）。</summary>
+    /// <summary>
+    /// 打开设置中心（对应源项目 tray / 主窗口菜单的「设置」）。
+    ///
+    /// 首选 Web 版（WebView2 渲染 ui/）。三种情况回退原生窗口：
+    /// 界面文件缺失、机器上没有 WebView2 运行时、以及 Web 版自己起不来
+    ///（用户在兜底面板上点了「改用原生设置窗口」）。
+    /// 设置是常用功能，不该因为一个可选组件就整个打不开。
+    /// </summary>
     private void ShowSettings()
     {
-        var window = Require<SettingsWindow>();
-        if (_main is not null && _main.IsVisible) window.Owner = _main;
+        if (SettingsWebWindow.IsAvailable())
+        {
+            var web = Require<SettingsWebWindow>();
+            if (_main is not null && _main.IsVisible) web.Owner = _main;
 
-        window.ShowDialog();
+            // 兜底面板上的出口：Web 版加载失败时，用户一键切到原生窗口。
+            // 用局部标志而不是字段，免得两个窗口同时在世时互相串味。
+            var fallback = false;
+            void OnFallback(object? _, EventArgs __) => fallback = true;
+
+            web.NativeFallbackRequested += OnFallback;
+            try { web.ShowDialog(); }
+            finally { web.NativeFallbackRequested -= OnFallback; }
+
+            if (!fallback) return;
+
+            System.Diagnostics.Debug.WriteLine("[settings] Web 版起不来，按用户选择改用原生设置窗口");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("[settings] WebView2 或 ui/ 不可用，改用原生设置窗口");
+        }
+
+        var native = Require<SettingsWindow>();
+        if (_main is not null && _main.IsVisible) native.Owner = _main;
+
+        native.ShowDialog();
     }
 
     /// <summary>假期与调休（对应托盘 on_holidays）。</summary>

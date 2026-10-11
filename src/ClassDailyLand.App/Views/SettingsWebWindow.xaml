@@ -1,0 +1,61 @@
+<Window x:Class="ClassDailyLand.App.Views.SettingsWebWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    Title="设置"
+    Width="1120" Height="740"
+    MinWidth="780" MinHeight="520"
+    WindowStartupLocation="CenterOwner"
+    UseLayoutRounding="True"
+    TextOptions.TextFormattingMode="Display"
+    SnapsToDevicePixels="True"
+    WindowStyle="None"
+    ResizeMode="CanResize"
+    Background="#F3F3F3">
+
+    <!--
+      设置中心的新外壳：窗口仍是 WPF，只有窗口「里面」换成 WebView2 渲染仓库根的 ui/。
+
+      ★ 无边框：WindowStyle=None + ResizeMode=CanResize ——
+        去掉系统标题栏，但保留 WS_THICKFRAME，于是**系统自带的调整边框仍然有效**
+        （它在客户区之外，不会被 WebView2 的 HWND 盖住，所以拖边缩放照常）。
+        标题栏、最小化 / 最大化 / 关闭都改由页内那条 .app-titlebar 画，
+        拖动靠 WebView2 的非客户区支持（IsNonClientRegionSupportEnabled + app-region）。
+
+      三层兜底，任何一层都不允许出现「一片白」：
+        LoadingText  内核起来的头一两秒（此时还没有 WebView2 的窗口表面）
+        Web          正常渲染
+        ErrorLayer   内核缺失 / 导航失败 / 启动超时 / 渲染进程崩溃
+
+      注意 WebView2 是 HWND 托管，它的绘制表面永远盖在 WPF 内容之上，
+      所以显示 ErrorLayer 时必须同时把 Web 收起来，否则提示根本看不见。
+    -->
+    <Grid x:Name="RootGrid" Background="#F3F3F3">
+
+        <TextBlock x:Name="LoadingText"
+                   Text="正在加载设置界面…"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   FontSize="14" Opacity="0.72" />
+
+        <wv2:WebView2 x:Name="Web" />
+
+        <Border x:Name="ErrorLayer" Visibility="Collapsed" Padding="32">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="620">
+                <TextBlock x:Name="ErrorTitle" FontSize="19" FontWeight="SemiBold"
+                           Text="设置界面加载失败" />
+                <TextBlock x:Name="ErrorMessage" Margin="0,12,0,0"
+                           TextWrapping="Wrap" Opacity="0.78" />
+
+                <!-- 有原生设置窗口可退时才显示；设置是常用功能，不该打不开 -->
+                <Button x:Name="NativeFallbackButton" Margin="0,20,0,0" Padding="16,7"
+                        HorizontalAlignment="Left" Visibility="Collapsed"
+                        Content="改用原生设置窗口"
+                        Click="OnNativeFallbackClick" />
+
+                <TextBlock x:Name="ErrorHint" Margin="0,16,0,0"
+                           TextWrapping="Wrap" Opacity="0.55" FontSize="12"
+                           Text="界面文件位于程序目录下的 ui\ 文件夹；若整个文件夹缺失，重新构建或重新解压发布包即可。" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
